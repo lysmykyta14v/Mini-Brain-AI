@@ -1,0 +1,453 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MiniBrain AI</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #eaf2ff;
+  max-width: 750px;
+  margin: 30px auto;
+  padding: 15px;
+}
+
+main {
+  background: white;
+  border-radius: 12px;
+  padding: 22px;
+}
+
+h1 { color: #174ea6; }
+
+input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 12px;
+  font-size: 16px;
+}
+
+button {
+  padding: 11px 15px;
+  margin: 7px 5px 7px 0;
+  background: #174ea6;
+  color: white;
+  border: none;
+  border-radius: 7px;
+  cursor: pointer;
+}
+
+button:hover { background: #103a80; }
+
+#answer {
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+#source a {
+  color: #174ea6;
+  overflow-wrap: anywhere;
+}
+
+.favorite {
+  display: block;
+  background: #edf3ff;
+  color: #174ea6;
+  text-align: left;
+  width: 100%;
+}
+
+.small { color: #666; font-size: 13px; }
+</style>
+</head>
+
+<body>
+<main>
+<h1>MiniBrain AI</h1>
+<p>Your personal knowledge assistant</p>
+<p class="small">
+Built-in knowledge + mathematics + Wikipedia
+</p>
+
+<input id="question" placeholder="Ask MiniBrain anything">
+
+<button onclick="ask()">Ask</button>
+<button onclick="clearAnswer()">Clear</button>
+<button onclick="saveFavorite()">☆ Save Favorite</button>
+
+<h3>Answer</h3>
+<p id="answer">Ask a question to begin.</p>
+<p id="source"></p>
+<p id="count"></p>
+
+<hr>
+
+<h3>⭐ Favorite Questions</h3>
+<div id="favorites"></div>
+</main>
+
+<script>
+const knowledge = {};
+
+function normalize(s) {
+  return s.toLowerCase().trim()
+    .replace(/[?!.,]/g, "")
+    .replace(/\s+/g, " ");
+}
+
+function add(q, a) {
+  knowledge[normalize(q)] = a;
+}
+
+// 65 general knowledge topics
+const facts = [
+["earth","Earth is the third planet from the Sun."],
+["the sun","The Sun is the star at the center of our solar system."],
+["the moon","The Moon is Earth's natural satellite."],
+["mars","Mars is the fourth planet from the Sun."],
+["jupiter","Jupiter is the largest planet in our solar system."],
+["saturn","Saturn is famous for its rings."],
+["venus","Venus is the second planet from the Sun."],
+["mercury","Mercury is the closest planet to the Sun."],
+["neptune","Neptune is the eighth planet from the Sun."],
+["uranus","Uranus is an ice giant."],
+["pluto","Pluto is a dwarf planet."],
+["a galaxy","A galaxy contains stars, gas and dust."],
+["the milky way","The Milky Way is our galaxy."],
+["a black hole","A region where gravity prevents light from escaping."],
+["gravity","Gravity is attraction between objects with mass."],
+["a star","A massive glowing ball of hot plasma."],
+["water","Water is H2O."],
+["oxygen","A chemical element important for respiration."],
+["hydrogen","The lightest chemical element."],
+["an atom","A basic unit of matter."],
+["energy","The capacity to do work or cause change."],
+["electricity","A phenomenon involving electric charges."],
+["light","Electromagnetic radiation."],
+["sound","Vibrations traveling through a medium."],
+["temperature","A measure of how hot or cold something is."],
+["photosynthesis","Plants use light to produce sugars."],
+["dna","A molecule carrying genetic information."],
+["a cell","The basic unit of life."],
+["evolution","Changes in inherited traits over generations."],
+["canada","A country in North America."],
+["an ecosystem","Organisms interacting with their environment."],
+["a food chain","A sequence showing who eats whom."],
+["biodiversity","The variety of living organisms."],
+["a habitat","The natural home of an organism."],
+["a predator","An animal that hunts other animals."],
+["a herbivore","An animal that eats plants."],
+["a carnivore","An animal that eats animals."],
+["an omnivore","An animal that eats plants and animals."],
+["a mammal","A vertebrate animal that produces milk for its young."],
+["a reptile","A vertebrate group including snakes and lizards."],
+["an amphibian","A vertebrate group including frogs and salamanders."],
+["a volcano","An opening where magma and gases escape."],
+["an earthquake","Shaking caused by movement in Earth's crust."],
+["a tsunami","Large waves often caused by underwater earthquakes."],
+["a continent","A very large landmass."],
+["an island","Land surrounded by water."],
+["a desert","A region with very little precipitation."],
+["a rainforest","A forest with abundant rainfall."],
+["a glacier","A large mass of slowly moving ice."],
+["weather","Short-term atmospheric conditions."],
+["climate","Long-term weather patterns."],
+["a computer","An electronic device that processes data."],
+["the internet","A worldwide network of connected computers."],
+["artificial intelligence","Technology performing tasks associated with human intelligence."],
+["programming","Writing instructions for computers."],
+["python","A programming language."],
+["javascript","A programming language used on websites."],
+["html","A markup language for web pages."],
+["a robot","A machine that performs physical tasks automatically."],
+["a neural network","A computational model of connected processing units."],
+["machine learning","Learning patterns from data."],
+["an algorithm","A sequence of steps for solving a problem."],
+["a database","An organized collection of data."],
+["a browser","An application for viewing websites."],
+["a website","A collection of web pages."]
+];
+
+// 325 general question entries
+for (const [topic, answer] of facts) {
+  for (const prefix of [
+    "what is ",
+    "tell me about ",
+    "explain ",
+    "define ",
+    "describe "
+  ]) {
+    add(prefix + topic, answer);
+  }
+}
+
+// 300 addition entries
+for (let a=1; a<=20; a++) {
+  for (let b=1; b<=15; b++) {
+    add("what is "+a+" + "+b, String(a+b));
+  }
+}
+
+// 250 multiplication entries
+for (let a=1; a<=25; a++) {
+  for (let b=1; b<=10; b++) {
+    add("what is "+a+" * "+b, String(a*b));
+  }
+}
+
+// 200 subtraction entries
+for (let a=20; a<40; a++) {
+  for (let b=1; b<=10; b++) {
+    add("what is "+a+" - "+b, String(a-b));
+  }
+}
+
+// 150 square-number entries
+for (let a=1; a<=150; a++) {
+  add("what is "+a+" squared", String(a*a));
+}
+
+// 100 conversion entries
+for (let a=1; a<=100; a++) {
+  add(
+    "how many centimeters are in "+a+" meters",
+    (a*100)+" centimeters."
+  );
+}
+
+// Favorite questions are saved in Chrome
+let favorites = [];
+
+try {
+  favorites = JSON.parse(
+    localStorage.getItem("MiniBrainFavorites") || "[]"
+  );
+  if (!Array.isArray(favorites)) favorites = [];
+} catch (error) {
+  favorites = [];
+}
+
+function showAnswer(text) {
+  document.getElementById("answer").textContent = text;
+}
+
+function clearSource() {
+  document.getElementById("source").textContent = "";
+}
+
+function showSource(title) {
+  const box = document.getElementById("source");
+  box.textContent = "Source: ";
+
+  const link = document.createElement("a");
+  link.href = "https://en.wikipedia.org/wiki/" +
+    encodeURIComponent(title.replace(/ /g, "_"));
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Wikipedia — " + title;
+
+  box.appendChild(link);
+}
+
+let requestNumber = 0;
+
+async function ask() {
+  const raw = document.getElementById("question").value.trim();
+  const question = normalize(raw);
+  const currentRequest = ++requestNumber;
+
+  clearSource();
+
+  if (!question) {
+    showAnswer("Please type a question.");
+    return;
+  }
+
+  // Check built-in answers
+  if (knowledge[question] !== undefined) {
+    showAnswer(knowledge[question]);
+    return;
+  }
+
+  // Calculate mathematics
+  const math = question.match(
+    /^(?:what is )?(-?\d+(?:\.\d+)?)\s*([+\-*/])\s*(-?\d+(?:\.\d+)?)$/
+  );
+
+  if (math) {
+    const a = Number(math[1]);
+    const b = Number(math[3]);
+    const op = math[2];
+
+    let result;
+
+    if (op === "+") result = a+b;
+    if (op === "-") result = a-b;
+    if (op === "*") result = a*b;
+    if (op === "/") {
+      result = b===0 ? "Cannot divide by zero." : a/b;
+    }
+
+    showAnswer(String(result));
+    return;
+  }
+
+  // Wikipedia search
+  showAnswer("Searching Wikipedia...");
+
+  const topic = question.replace(
+    /^(what is|what are|who is|who was|where is|where was|when was|when did|tell me about|explain|define|describe)\s+/,
+    ""
+  );
+
+  try {
+    const params = new URLSearchParams({
+      action: "query",
+      generator: "search",
+      gsrsearch: topic,
+      gsrlimit: "1",
+      prop: "extracts",
+      exintro: "1",
+      explaintext: "1",
+      exsentences: "3",
+      format: "json",
+      origin: "*"
+    });
+
+    // Request plain-text article extracts
+    params.delete("explaintext");
+    params.set("explaintext", "1");
+
+    const url =
+      "https://en.wikipedia.org/w/api.php?" +
+      params.toString();
+
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Wikipedia unavailable");
+    }
+
+    const data = await response.json();
+
+    if (currentRequest !== requestNumber) return;
+
+    const pages = Object.values(data.query?.pages || {});
+    const page = pages[0];
+
+    if (page && page.extract && page.extract.trim()) {
+      showAnswer(page.extract.trim());
+      showSource(page.title);
+    } else {
+      showAnswer(
+        "I couldn't find a clear Wikipedia answer. Try different words."
+      );
+    }
+
+  } catch (error) {
+    if (currentRequest !== requestNumber) return;
+
+    showAnswer(
+      "Wikipedia couldn't connect. Check your internet connection. My built-in answers still work offline."
+    );
+  }
+}
+
+// Clear button
+function clearAnswer() {
+  requestNumber++;
+  document.getElementById("question").value = "";
+  showAnswer("Ask a question to begin.");
+  clearSource();
+}
+
+// Save favorite question
+function saveFavorite() {
+  const q = document.getElementById("question").value.trim();
+
+  if (!q) {
+    showAnswer("Type a question before saving it.");
+    return;
+  }
+
+  if (!favorites.some(x => normalize(x) === normalize(q))) {
+    favorites.push(q);
+
+    try {
+      localStorage.setItem(
+        "MiniBrainFavorites",
+        JSON.stringify(favorites)
+      );
+    } catch (error) {
+      showAnswer("Could not save favorites in this browser.");
+      return;
+    }
+
+    renderFavorites();
+  }
+}
+
+// Display favorite questions
+function renderFavorites() {
+  const container = document.getElementById("favorites");
+  container.textContent = "";
+
+  if (favorites.length === 0) {
+    container.textContent = "No favorites saved yet.";
+    return;
+  }
+
+  favorites.forEach((question, index) => {
+    const row = document.createElement("div");
+
+    const openButton = document.createElement("button");
+    openButton.className = "favorite";
+    openButton.textContent = "☆ " + question;
+
+    openButton.onclick = function() {
+      document.getElementById("question").value = question;
+      ask();
+    };
+
+    const removeButton = document.createElement("button");
+    removeButton.textContent = "Remove";
+
+    removeButton.onclick = function() {
+      favorites.splice(index, 1);
+
+      try {
+        localStorage.setItem(
+          "MiniBrainFavorites",
+          JSON.stringify(favorites)
+        );
+      } catch (error) {}
+
+      renderFavorites();
+    };
+
+    row.appendChild(openButton);
+    row.appendChild(removeButton);
+    container.appendChild(row);
+  });
+}
+
+// Enter key submits questions
+document.getElementById("question")
+  .addEventListener("keydown", function(event) {
+    if (event.key === "Enter") ask();
+  });
+
+document.getElementById("count").textContent =
+  "Stored questions and answers: " +
+  Object.keys(knowledge).length;
+
+renderFavorites();
+</script>
+</body>
+</html>
